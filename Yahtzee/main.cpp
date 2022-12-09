@@ -231,6 +231,15 @@ public:
 					}
 				}
 			}
+			else
+			{
+				key_pressed_enter = 0;
+				for(int i=0 ; i<13 ; i++)
+				{
+					bPoint[i] = false;
+					
+				}
+			}
 		}
 
 		if (GetKey(olc::Key::DOWN).bReleased)
