@@ -5,7 +5,11 @@
 #include <numeric>
 #include <stack>
 #include <time.h>
-#include <stdlib.h>  
+#include <fstream>
+
+
+
+
 
 
 class FiveDice : public olc::PixelGameEngine
@@ -16,22 +20,28 @@ public:
 		sAppName = "Yahtzee";
 	}
 
+	static const int num_dice = 5;
+	static const int num_scores = 13;
+	std::vector<int> Highscores;
 	std::vector<std::pair<std::string, int>> vScores;
 	std::vector<std::pair<std::string, int>> vScores_after;
 	std::vector<uint8_t> vRolled;		// our 5 dice values
 	std::vector<uint8_t> vSorted;		// our 5 dice values sorted
-	bool bSelected_Dice[5] = { false };
-	bool bWhat_to_score[13] = { false };
-	bool bPoint[13] = { false };   // if we have scored
-	bool bPoint_after[13] = { false };	
+	bool bSelected_Dice[num_dice] = { false };
+	bool bWhat_to_score[num_scores] = { false };
+	bool bPoint[num_scores] = { false };   // if we have scored
+	bool bPoint_after[num_scores] = { false };
 	bool bReleasedH = false;
-	int index=0;    // how many scores we have done
+	bool bSavescore = true;
+	int index = 0;    // how many scores we have done
 	int total_points = 0;
 	int key_pressed_enter = 0;
 	int key_pressed_space = 0;
-	
 
-	
+
+
+
+
 
 public:
 	void DrawDie(const olc::vi2d& vPos,
@@ -94,9 +104,9 @@ public:
 		vRolled = { 1, 2, 3, 4, 5 };
 		std::generate(vRolled.begin(), vRolled.end(), []() { return rand() % 6 + 1; });
 		vSorted = vRolled;
-	
 
-		for (int i = 0; i < 13; i++) {
+
+		for (int i = 0; i < num_scores; i++) {
 			vScores_after.emplace_back(std::make_pair("", 0));
 		}
 
@@ -118,7 +128,7 @@ public:
 				bool bMatch = true;
 				uint8_t n = 0;
 
-				for (size_t idx = 0; idx < 5; idx++)
+				for (size_t idx = 0; idx < num_dice; idx++)
 				{
 					if (sPattern[idx] == 'n')
 					{
@@ -149,16 +159,16 @@ public:
 
 		if (GetKey(olc::Key::SPACE).bReleased)
 		{
-			if(key_pressed_space < 2)
+			if (key_pressed_space < 2)
 			{
 				key_pressed_space++;
-				int temp[5];
-				for (int i = 0; i < 5; i++) 	if (bSelected_Dice[i]) temp[i] = vRolled[i];
+				int temp[num_dice];
+				for (int i = 0; i < num_dice; i++) 	if (bSelected_Dice[i]) temp[i] = vRolled[i];
 
 				std::generate(vRolled.begin(), vRolled.end(), []() { return rand() % 6 + 1; });
 
-				for (int i = 0; i < 5; i++)		if (bSelected_Dice[i])  vRolled[i] = temp[i];
-			
+				for (int i = 0; i < num_dice; i++)		if (bSelected_Dice[i])  vRolled[i] = temp[i];
+
 				vSorted = vRolled;
 				std::sort(vSorted.begin(), vSorted.end());
 			}
@@ -188,17 +198,17 @@ public:
 
 		if (GetKey(olc::Key::ENTER).bReleased)
 		{
-			if (key_pressed_enter < 13)
+			if (key_pressed_enter < num_scores)
 			{
 				key_pressed_space = 0;
 				key_pressed_enter++;
 
-				for (int i = 0; i < 13; i++)
+				for (int i = 0; i < num_scores; i++)
 				{
 					if (bWhat_to_score[i])
 					{
-						
-						if (!bPoint_after[i])		
+
+						if (!bPoint_after[i])
 						{
 							vScores_after[i] = vScores[i];
 							bPoint_after[i] = true;
@@ -208,36 +218,36 @@ public:
 						vSorted = vRolled;
 						std::sort(vSorted.begin(), vSorted.end());
 
-						for (int i = 0; i < 5; i++) bSelected_Dice[i] = false;
+						for (int i = 0; i < num_dice; i++) bSelected_Dice[i] = false;
 
 						total_points += vScores[i].second;
 
 						bPoint[i] = true;
-						
+
 						//select next option which is not scored
-						bWhat_to_score[index] = false;	
+						bWhat_to_score[index] = false;
 
 						int while_loop_times = 0;
-						while (bPoint[(index + 1) % 13] && while_loop_times < 13)
+						while (bPoint[(index + 1) % num_scores] && while_loop_times < num_scores)
 						{
 							index++;
-							index = index % 13;
+							index = index % num_scores;
 							while_loop_times++;
 						}
 						index++;
-						index = index % 13;
+						index = index % num_scores;
 						bWhat_to_score[index] = true;
 						break;
 					}
 				}
 			}
-			else
+			else            // restart game
 			{
 				key_pressed_enter = 0;
-				for(int i=0 ; i<13 ; i++)
+				bSavescore = true;
+				for (int i = 0; i < num_scores; i++)
 				{
 					bPoint[i] = false;
-					
 				}
 			}
 		}
@@ -245,44 +255,43 @@ public:
 		if (GetKey(olc::Key::DOWN).bReleased)
 		{
 			bWhat_to_score[index] = false;
-			   while(bPoint[(index+1) % 13])
-			   {
-					index++;
-					index = index % 13;
-			   }
-		    index++;
-			index = index % 13;
+			while (bPoint[(index + 1) % num_scores])
+			{
+				index++;
+				index = index % num_scores;
+			}
+			index++;
+			index = index % num_scores;
 			bWhat_to_score[index] = true;
 
-		
+
 		}
 
 		if (GetKey(olc::Key::UP).bReleased)
 		{
 			bWhat_to_score[index] = false;
-			if (index == 0) index = 13;
+			if (index == 0) index = num_scores;
 
-			while (bPoint[(index - 1)  % 13])
+
+			while (bPoint[(index - 1) % num_scores])
 			{
 				index--;
-				if (index < 0) index = 12;
-				index = index % 13;
-				
+				if (index == 0) index = 12;
+				index = index % num_scores;
+
 			}
 			index--;
 			if (index < 0) index = 12;
-			index =index % 13;
+			index = index % num_scores;
 			bWhat_to_score[index] = true;
 		}
 
-		if (GetKey(olc::Key::H).bReleased)  
+		if (GetKey(olc::Key::H).bReleased)
 		{
 			bReleasedH = !bReleasedH;
 		}
 
-
-
-		 vScores =
+		vScores =
 		{
 			{"Total Ones      : ", std::count(vRolled.begin(), vRolled.end(), 1) * 1},
 			{"Total Twos      : ", std::count(vRolled.begin(), vRolled.end(), 2) * 2},
@@ -304,37 +313,47 @@ public:
 		//Drawing
 		Clear(olc::DARK_GREEN);
 		olc::vi2d vOffset = { -60, 90 };
-		for (int i = 0; i < 5; i++) if (bSelected_Dice[i]) DrawGrid({ vOffset.x + (80 * (i + 1)) , 10 });
+		for (int i = 0; i < num_dice; i++) if (bSelected_Dice[i]) DrawGrid({ vOffset.x + (80 * (i + 1)) , 10 });
 
-		for (int i = 0; i < 5; i++)       DrawDie({ vOffset.x += 80, 10 }, vRolled[i]);
-	
-		for (int i = 0; i < 13; i++)
+		for (int i = 0; i < num_dice; i++)       DrawDie({ vOffset.x += 80, 10 }, vRolled[i]);
+
+		for (int i = 0; i < num_scores; i++)
 		{
-			if(bPoint[i])	 DrawString(10, vOffset.y += 10, vScores_after[i].first + std::to_string(vScores_after[i].second), olc::GREEN);	
-			else 
+			if (bPoint[i])	 DrawString(10, vOffset.y += 10, vScores_after[i].first + std::to_string(vScores_after[i].second), olc::GREEN);
+			else
 			{
-				if(!bWhat_to_score[i])	DrawString(10, vOffset.y += 10,vScores[i].first + std::to_string(vScores[i].second));
-				else					DrawString(10, vOffset.y += 10, vScores[i].first + std::to_string(vScores[i].second),olc::RED);
-				
+				if (!bWhat_to_score[i])	DrawString(10, vOffset.y += 10, vScores[i].first + std::to_string(vScores[i].second));
+				else					DrawString(10, vOffset.y += 10, vScores[i].first + std::to_string(vScores[i].second), olc::RED);
+
 			}
 		}
-		DrawString(10, vOffset.y += 30, vScores[13].first + std::to_string(vScores[13].second));  //totalpoints
-		DrawString(10,410, "H for Help");
-		if(bReleasedH)   // show rules, controls
+		DrawString(10, vOffset.y += 30, vScores[num_scores].first + std::to_string(vScores[num_scores].second));  //totalpoints
+		DrawString(10, 410, "H for Help");
+		if (bReleasedH)   // show rules, controls
 		{
 			DrawString(300, 160, "Controls:");
 			DrawString(300, 170, "1,2,3,4,5			 keep the dice");
-			DrawString(300, 180, "Space				 re - roll up to 2 times ");
+			DrawString(300, 180, "Space				 re - roll ");
 			DrawString(300, 190, "Enter				 score points");
+			DrawString(300, 200, "U					 highscores");
 		}
 
-		if(key_pressed_enter > 12)	DrawString(50, vOffset.y += 50, "You scored " + std::to_string(vScores[13].second) + " points" , olc::GREEN , 2);  //show points after game end
+		if (key_pressed_enter > 12)
+		{
+			DrawString(50, vOffset.y += 50, "You scored " + std::to_string(vScores[num_scores].second) + " points", olc::GREEN, 2);  //show points after game end
+			if (bSavescore)
+			{
+				bSavescore = false;
+			}
+		}
 		return true;
 	}
 
+
 };
 
-int main()
+
+int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmd, int show)
 {
 	FiveDice demo;
 	if (demo.Construct(640, 480, 2, 2))
